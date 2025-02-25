@@ -15,4 +15,4 @@ const sqlConnect = async () => {
   return await sql.connect(sqlConfig);
 };
 
-export default { sqlConnect, sql};
+export { sqlConnect, sql};
