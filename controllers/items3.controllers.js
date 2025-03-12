@@ -11,7 +11,7 @@ export const getItems = async (req, res) => {
 
 export const getItem = async (req, res) => {
   const items = await db.collection("items").doc(req.params.id).get();
-  res.json({ id: req.params.id, name: items.data().name, price: items.data().price });
+  res.json({ id: req.params.id, name: items.data().name, price: items.data().price, });
 };
 
 export const postItem = async (req, res) => {
