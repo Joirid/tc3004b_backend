@@ -1,4 +1,4 @@
-import db from "../utils/firebase.js";
+import db from "../DB/firebase.js";
 
 export const getItems = async (req, res) => {
   const items = await db.collection("items").get();

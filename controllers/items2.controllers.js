@@ -1,4 +1,4 @@
-import Item from '../utils/item.model.js'
+import Item from '../DB/item.model.js'
 
 export const getItems = async (req, res) => {
     const items = await Item.find();

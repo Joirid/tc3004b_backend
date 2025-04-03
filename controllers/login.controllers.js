@@ -1,15 +1,15 @@
-import {sqlConnect, sql} from '../utils/sql.js';
-import crypto from 'crypto';
+import {sqlConnect, sql} from '../DB/sql.js';
+import { hashPassword, getSalt } from '../utils/hash.js';
+import jwt from 'jsonwebtoken';
 
 export const register = async (req, res) => {
     try{
         const pool = await sqlConnect();
-        const salt = crypto.randomBytes(16).toString('base64url').slice(0, 10);
+        const salt = getSalt();
         const saltPassword = salt + req.body.password;
 
         // Crear el hash de la contraseña con el salt
-        const hashing = crypto.createHash('sha512');
-        const hash = hashing.update(saltPassword).digest("base64url");
+        const hash = hashPassword(req.body.password, salt);
 
         // Concatenar el salt y el hash para almacenar en la base de datos
         const passHashSalt = salt + hash;
@@ -42,6 +42,7 @@ export const register = async (req, res) => {
     }
 };
 
+
 export const login = async (req, res) => {
     const pool = await sqlConnect();
     const data = await pool.request().input("username", sql.VarChar, req.body.username).query('SELECT * FROM users WHERE username = @username');
@@ -61,20 +62,20 @@ export const login2 = async (req, res) => {
         console.log(data.recordset);
 
         // Obtener el salt y el hash almacenados en la base de datos
-        const storedHash = data.recordset[0].password.slice(10);
-        const salt = data.recordset[0].password.slice(0, 10);
+        const salt = data.recordset[0].password.slice(0, process.env.SALT_SIZE);
 
         // Concatenar el salt y la contraseña proporcionada por el usuario para crear el hash
-        const saltPassword = salt + req.body.password;
-        const hashing = crypto.createHash('sha512');
-        const hash = hashing.update(saltPassword).digest("base64url");
+        const hash = hashPassword(req.body.password, salt);
+
+        const passHashSalt = salt + hash;
 
         // Comparar el hash almacenado con el hash generado
-        let isLogin = storedHash === hash;
+        let isLogin = data.recordset[0].password === passHashSalt;
 
         // Enviar respuesta al cliente
         if (isLogin) {
-            res.status(200).json({ isLogin: isLogin, user: data.recordset[0] });
+            const token = jwt.sign({sub: data.recordset[0].id }, process.env.JWT, {expiresIn: '1h'});
+            res.status(200).json({ isLogin: isLogin, user: data.recordset[0], token: token });
         } else {
             res.status(400).json({ isLogin: isLogin, user: {} });
         }
@@ -91,12 +92,10 @@ export const login2 = async (req, res) => {
 export const updatePassword= async (req, res) => {
     try {
         const pool = await sqlConnect();
-        const salt = crypto.randomBytes(16).toString('base64url').slice(0, 10);
-        const saltPassword = salt + req.body.password;
+        const salt = getSalt();
 
         // Crear el hash de la contraseña con el salt
-        const hashing = crypto.createHash('sha512');
-        const hash = hashing.update(saltPassword).digest("base64url");
+        const hash = hashPassword(req.body.password, salt);
 
         // Concatenar el salt y el hash para almacenar en la base de datos
         const passHashSalt = salt + hash;

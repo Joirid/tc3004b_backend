@@ -1,4 +1,4 @@
-import {sqlConnect, sql} from '../utils/sql.js';
+import {sqlConnect, sql} from '../DB/sql.js';
 
 export const getItems = async (req, res) => {
     const pool = await sqlConnect();
